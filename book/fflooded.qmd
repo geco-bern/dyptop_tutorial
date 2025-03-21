@@ -1,0 +1,408 @@
+# Flooded area fraction {#sec-fflooded}
+
+```{r warning=FALSE, message=FALSE}
+library(optimx)
+library(terra)
+library(tidyterra)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(cowplot)
+library(ggspatial)
+library(dplyr)
+library(here)
+
+source(here("R/plot_map.R"))
+```
+
+## The TOPMODEL 
+
+TOPMODEL [@bevenkirkby79] defines the *Compound Topography Index* (CTI) for measuring subsurface water flow convergence at a given point within a catchment and that point's tendency for a shallow water table depth and for getting flooded. It is defined for a point $i$ as:
+$$
+\text{CTI}_i = \ln(a_i / \tan(\beta_i)) \;,
+$$
+where $a_i$ is the total area that drains into/through the respective point, and $\beta_i$ refers to the local slope. The TOPMODEL thus expresses that lateral flow redistributes water across the landscape and across topographical gradients such that for a certain portion of the catchment, the soil is fully water-saturated (here, considered as *flooded*). This portion depends on three quantities:
+
+- The topography within the catchment: Flat valley bottoms get flooded first. Hence, the *distribution* of CTI matters for determining the flooded area fraction for a given catchment water balance.
+- The average catchment water balance: The wetter the conditions, the more water is stored in the soil and subsurface, and the higher the larger the catchment's area fraction for which the soil is at saturation. In @eq-topmodel, this is expressed as the water table depth $\Gamma$.
+- The structure of the soil and subsurface, expressed as the rate of decline of transmissivity for water flow with depth. In @eq-topmodel, this is represented by the parameter $M$.
+
+CTI can be derived from a digital elevation model and is provided at topography-resolving spatial resolution. @fig-maps_domain_congo and @fig-maps_domain_switzerland show the spatial distribution of CTI values at 15 arcsec resolution and is provided by @marthews14hess . Let's refer to each pixel in these images as *pixel*, also using the underscore $i$.
+
+TOPMODEL defines a critical CTI value $\text{CTI}_x^\ast$, above which a pixel is flooded:
+$$
+\text{CTI}_x^\ast = \overline{\text{CTI}}_x - M\cdot\Gamma_x
+$$ {#eq-topmodel}
+$\overline{\text{CTI}}_x$ is the catchment-scale mean CTI. (For other quantities, see above.). Note that all these quantities are representative for the catchment-scale, as expressed by the subscript $x$.
+
+The basic unit of a DGVM is a (coarse-scale) gridcell - not a catchment. In DYPTOP, @eq-topmodel is thus re-interpreted for representing these relations within a gridcell. 
+
+To summarise, the distribution of CTI values within a larger spatial domain (e.g., a DGVM gridcell) is key for determining the flooded area fraction. Hence, let's look at this distribution for our demo regions.
+
+
+## Distribution of CTI values
+
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=6}
+#| code-fold: true
+#| label: fig-cti_distribution
+#| fig-cap: "Density and cumulative density distributions for the two demo regions."
+
+# congo
+file_path <- here("data/ga2_congo.nc")
+rasta_cti <- rast(file_path)
+bounding_box <- c(15,22,-3,3) # c(15,20,-2,3)  # max bb:  c(15,22,-3,3)
+rasta_cti_cropped <- crop(rasta_cti, ext(bounding_box))
+
+df_cti_congo <- as.data.frame(rasta_cti_cropped, xy = TRUE, na.rm = TRUE) |>
+  as_tibble() |>
+  setNames(c("lon", "lat", "cti"))
+
+gg1 <- df_cti_congo |>
+  ggplot(aes(cti, ..density..)) +
+  geom_density(color = "tomato") +
+  labs(title = "Congo", x = "CTI", y = "density") +
+  theme_classic() +
+  xlim(0, NA)
+
+gg2 <- df_cti_congo |>
+  ggplot(aes(x = cti)) +
+  stat_ecdf(geom = "step", color = "tomato") +  # ECDF plot
+  labs(x = "CTI",
+       y = "Cumulative density",
+       title = " ") +
+  theme_classic() +
+  xlim(0, NA)
+
+# switzerland
+file_path <- here("data/ga2_switzerland.nc")
+bounding_box <- c(xmin = 6, xmax = 10.5, ymin = 45.81799, ymax = 47.80838)
+rasta_cti <- rast(file_path)
+rasta_cti_cropped <- crop(rasta_cti, ext(bounding_box))
+
+df_cti_switzerland <- as.data.frame(rasta_cti_cropped, xy = TRUE, na.rm = TRUE) |>
+  as_tibble() |>
+  setNames(c("lon", "lat", "cti"))
+
+gg3 <- df_cti_switzerland |>
+  ggplot(aes(cti, ..density..)) +
+  geom_density(color = "tomato") +
+  labs(title = "Switzerland", x = "CTI", y = "density") +
+  theme_classic() +
+  xlim(0, NA)
+
+gg4 <- df_cti_switzerland |>
+  ggplot(aes(x = cti)) +
+  stat_ecdf(geom = "step", color = "tomato") +  # ECDF plot
+  labs(x = "CTI",
+       y = "Cumulative density",
+       title = " ") +
+  theme_classic() +
+  xlim(0, NA)
+
+cowplot::plot_grid(gg1, gg2, gg3, gg4, ncol = 2)
+```
+
+## Flooded pixels
+
+Let's determine the critical CTI threshold ($\mathrm{CTI}_x^\ast$) above which a pixel is flooded for a given water table depth (here -0.2 m) and for the two demo regions.  for the Congo basin, assuming that the extent shown in the figure above corresponds to one catchment.
+
+```{r}
+m_par <- 8.0  # Stocker et al., 2014, Table 1
+wtd <- -0.2   # m
+
+calc_cti_crit <- function(vec_cti, wtd, m_par){
+  mean(vec_cti) - m_par * wtd
+}
+
+# Congo
+cti_crit_congo <- calc_cti_crit(df_cti_congo$cti, wtd, m_par)
+cti_crit_congo
+
+# switzerland
+cti_crit_switzerland <- calc_cti_crit(df_cti_switzerland$cti, wtd, m_par)
+cti_crit_switzerland
+```
+
+Next, let's determine the fraction of flooded pixels, given $\mathrm{CTI}_x^\ast$.
+
+```{r}
+calc_fflooded <- function(vec_cti, cti_crit){
+  length(vec_cti[vec_cti > cti_crit])/length(vec_cti)
+}
+
+# Congo
+fflooded_congo <- calc_fflooded(df_cti_congo$cti, cti_crit_congo)
+fflooded_congo
+
+# Switzerland
+fflooded_switzerland <- calc_fflooded(df_cti_switzerland$cti, cti_crit_switzerland)
+fflooded_switzerland
+```
+
+Graphically, this relates to the cumulative density distribution function of CTI within the two domains.
+
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=3}
+#| code-fold: true
+#| label: fig-cti_distribution_fflooded
+#| fig-cap: "Density and cumulative density distributions for the two demo regions with the critical CTI for a given water table depth indicated by the vertical dotted line. The intersection of the cumulative density distribution and the critical critical CTI indicates the flooded area fraction."
+
+gg1 <- df_cti_congo |>
+  ggplot(aes(x = cti)) +
+  stat_ecdf(geom = "step", color = "tomato") +  # ECDF plot
+  geom_vline(xintercept = cti_crit_congo, linetype = "dotted") +
+  geom_hline(yintercept = 1 - fflooded_congo, linetype = "dotted") +
+  labs(title = "Congo",
+       x = "CTI",
+       y = "Cumulative density") +
+  theme_classic() +
+  xlim(0, NA)
+
+gg2 <- df_cti_switzerland |>
+  ggplot(aes(x = cti)) +
+  stat_ecdf(geom = "step", color = "tomato") +  # ECDF plot
+  geom_vline(xintercept = cti_crit_switzerland, linetype = "dotted") +
+  geom_hline(yintercept = 1 - fflooded_switzerland, linetype = "dotted") +
+  labs(title = "Switzerland",
+       x = "CTI",
+       y = "Cumulative density") +
+  theme_classic() +
+  xlim(0, NA)
+
+cowplot::plot_grid(gg1, gg2, ncol = 2)
+```
+
+Note that the flooded area fraction corresponds to one minus the value of the cumulative density at $\mathrm{CTI}_x^\ast$.
+
+To recap, for the water table depth specified above (variable `wtd`), TOPMODEL assumes that all pixels with a CTI above $\mathrm{CTI}_x^\ast$ (`cti_crit` in code) are at saturation. The flooded area fraction is thus determined by the cumulative density distribution of all pixels' CTI.
+
+The spatial distribution of flooded areas can be visualised by simply masking values above $\mathrm{CTI}_x^\ast$:
+
+```{r eval=FALSE}
+# congo
+file_path <- here("data/ga2_congo.nc")
+bounding_box <- c(15,22,-3,3)
+map_congo <- plot_map(file_path, bounding_box, cti_crit = cti_crit_congo, show_legend = TRUE, show_inset = FALSE)
+ggsave(here("book/images/map_congo_flooded.png"), plot = map_congo, width = 8, height = 8)
+
+# switzerland
+file_path <- here("data/ga2_switzerland.nc")
+bounding_box <- c(xmin = 6, xmax = 10.5, ymin = 45.81799, ymax = 47.80838)
+map_switzerland <- plot_map(file_path, bounding_box, cti_crit = cti_crit_switzerland, show_legend = TRUE, show_inset = FALSE)
+ggsave(here("book/images/map_switzerland_flooded.png"), plot = map_switzerland, width = 8, height = 5)
+```
+
+```{r echo=FALSE}
+#| label: fig-maps_domain_congo_flooded
+#| fig-cap: "Distribution of flooding in Congo for a given water table depth. Flooded pixels are in blue."
+#| out-width: 100%
+knitr::include_graphics("images/map_congo_flooded.png")
+```
+
+```{r echo=FALSE}
+#| label: fig-maps_domain_switzerland_flooded
+#| fig-cap: "Distribution of flooding in Switzerland for a given water table depth. Flooded pixels are in blue."
+#| out-width: 100%
+knitr::include_graphics("images/map_switzerland_flooded.png")
+```
+
+## Flooding vs. water table depth
+
+For large-scale modelling, we want to calculate the flooded area fraction of a gridcell as a function of the water table depth. Following the steps above, this corresponds to first calculating the critical CTI as a function of the water table depth and then to determine the flooded area fraction as a function of the critical CTI. To implement this, we can combine the functions `calc_cti_crit()` and `calc_fflooded()` to express the flooded area fraction as a function of the gridcell mean water table depth - corresponding to the relation shown in Fig. 2 of @stocker14dyptop.
+
+```{r}
+calc_fflooded_wtd <- function(wtd, vec_cti, m_par){
+  cti_crit <- calc_cti_crit(vec_cti, wtd, m_par)
+  fflooded <- calc_fflooded(vec_cti, cti_crit)
+  return(fflooded)
+}
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=3}
+#| code-fold: true
+#| label: fig-fflooded_wtd
+#| fig-cap: "Relationship of the flooded area fraction and the average water table depth across demo regions."
+
+# Congo
+df_wtd_congo <- tibble(wtd = seq(-1, 1, by = 0.01)) |>
+  rowwise() |>
+  mutate(fflooded = calc_fflooded_wtd(wtd, df_cti_congo$cti, m_par))
+
+gg1 <- df_wtd_congo |>
+  ggplot(aes(wtd, fflooded)) +
+  geom_line() +
+  theme_classic() +
+  labs(title = "Congo", x = "Water table depth (m)", y = "Flooded fraction")
+
+# Switzerland
+df_wtd_switzerland <- tibble(wtd = seq(-1, 1, by = 0.01)) |>
+  rowwise() |>
+  mutate(fflooded = calc_fflooded_wtd(wtd, df_cti_switzerland$cti, m_par))
+
+gg2 <- df_wtd_switzerland |>
+  ggplot(aes(wtd, fflooded)) +
+  geom_line() +
+  theme_classic() +
+  labs(title = "Switzerland", x = "Water table depth (m)", y = "Flooded fraction")
+
+plot_grid(gg1, gg2, ncol = 2)
+```
+The relationship shown in @fig-fflooded_wtd is determined from the distribution of CTI values within the respective domains. To determine this, the full information of CTI values at the fine resolution is required. In the context of global modelling, this is prohibitively data-intensive. Therefore, the "empirical" relationship is approximated in DYPTOP by an asymmetric sigmoid function $\Psi$:
+
+$$
+\Psi_x(\Gamma_x) = \left( 1 + v_x\;e^{-k_x\;(\Gamma_x - q_x)} \right)^{-1/v_x}
+$$ {#eq-sigmoid}
+
+This function has just three parameters. When applied, for example, for the domain of the Central Congo Basin, 2.4 mio. CTI values (one for each pixel) are reduced to just three values (one for each parameter). Of course, the explicit spatial information is lost. However, this information is not used for global modelling as it is beyond the spatial resolution and since we are only interested in the flooded *gridcell fraction*.
+
+The following code implements the assymetric sigmoid function and the fitting of the three parameters, characteristic for the respective domain.
+
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=3}
+#| code-fold: true
+#| label: fig-sigmoid_fit
+#| fig-cap: "Fitting the empirical relationship between the water table depth and the flooded area fraction for the two demo regions. The fitted assymetric sigmoid function is given by the red line."
+
+assymmetric_sigmoid <- function(x, par){
+  ( 1 + par["v"] * exp(-par["k"] * (x - par["q"])))^(-1/par["v"])
+}
+
+# Generate example data
+set.seed(1982)  # For reproducibility
+
+# Define the loss function (SSE)
+loss_function <- function(params, x, y) {
+  par <- setNames(params, c("v", "k", "q"))  # Name parameters
+  y_pred <- assymmetric_sigmoid(x, par)  # Compute predictions
+  sum((y - y_pred)^2)  # Sum of squared errors
+}
+
+# Initial guesses for parameters
+init_params <- c(v = 1, k = 0.5, q = 4)
+
+# Congo
+# Optimization using optimx
+fit_congo <- optimx(
+  par = init_params, 
+  fn = loss_function, 
+  x = df_wtd_congo$wtd, 
+  y = df_wtd_congo$fflooded, 
+  method = "BFGS"
+  )
+
+# Extract best parameters
+best_params <- coef(fit_congo)[1, ]
+v_est_congo <- best_params["v"]
+k_est_congo <- best_params["k"]
+q_est_congo <- best_params["q"]
+
+# Compute fitted values
+df_congo <- data.frame(
+  x = df_wtd_congo$wtd,
+  y_obs = df_wtd_congo$fflooded,
+  y_fit = assymmetric_sigmoid(df_wtd_congo$wtd, best_params)
+)
+
+# Plot results
+gg1 <- ggplot(df_congo, aes(x = x)) +
+  geom_point(aes(y = y_obs), color = "grey20", size = 2, alpha = 0.6) +  # Observations
+  geom_line(aes(y = y_fit), color = "tomato", linewidth = 1) +  # Fitted curve
+  labs(title = "Congo",
+       subtitle = paste("Estimated v =", round(v_est_congo, 2), 
+                        "k =", round(k_est_congo, 2),
+                        "q =", round(q_est_congo, 2)),
+       x = "Water table depth (m)", y = "Flooded fraction") +
+  theme_classic()
+
+# Switzerland
+# Optimization using optimx
+fit_switzerland <- optimx(
+  par = init_params, 
+  fn = loss_function, 
+  x = df_wtd_switzerland$wtd, 
+  y = df_wtd_switzerland$fflooded, 
+  method = "BFGS"
+  )
+
+# Extract best parameters
+best_params <- coef(fit_switzerland)[1, ]
+v_est_switzerland <- best_params["v"]
+k_est_switzerland <- best_params["k"]
+q_est_switzerland <- best_params["q"]
+
+# Compute fitted values
+df_switzerland <- data.frame(
+  x = df_wtd_switzerland$wtd,
+  y_obs = df_wtd_switzerland$fflooded,
+  y_fit = assymmetric_sigmoid(df_wtd_switzerland$wtd, best_params)
+)
+
+# Plot results
+gg2 <- ggplot(df_switzerland, aes(x = x)) +
+  geom_point(aes(y = y_obs), color = "grey20", size = 2, alpha = 0.6) +  # Observations
+  geom_line(aes(y = y_fit), color = "tomato", linewidth = 1) +  # Fitted curve
+  labs(title = "Switzerland",
+       subtitle = paste("Estimated v =", round(v_est_switzerland, 2), 
+                        "k =", round(k_est_switzerland, 2),
+                        "q =", round(q_est_switzerland, 2)),
+       x = "Water table depth (m)", y = "Flooded fraction") +
+  theme_classic()
+
+plot_grid(gg1, gg2, ncol = 2)
+```
+
+The three parameters $v, k, q$ can be fitted for each coarse-resolution model gridcell. Thus, the relationship between the (gridcell average) water table depth and the flooded gridcell area fraction is specified, and the sigmoid function (@eq-sigmoid) can be used for dynamically simulating flooding in large scale simulations of the surface water balance (e.g., in a DGVM or a land surface model). 
+
+<!-- We first read the input data from files.  -->
+
+<!-- - Aridity index map (P/PET), @zomer22scidat -->
+
+<!-- ```{r} -->
+<!-- p_over_pet <- rast(here("data/aridityindex_p_over_pet_zomeretal2022_v3_yr_halfdeg.nc")) -->
+<!-- ``` -->
+
+<!-- - Monthly total potential evapotranspiration (mm) -->
+
+<!-- ```{r} -->
+<!-- prec <- rast(here("data/LPX-Bern_DYPTOP_vars_1990-2020_0.5x0.5_MONMEAN_prec.nc")) -->
+<!-- ``` -->
+
+<!-- ## TOPMODEL parameters -->
+
+<!-- ### Basic expressions -->
+
+<!-- An expression is a set of commands that returns a value. -->
+
+<!-- Click `Run Code` to run the following R code. -->
+
+<!-- Execute this simple calculation. -->
+
+<!-- ```{r} -->
+<!-- 50 * 2.2 -->
+<!-- ``` -->
+
+<!-- Show the first rows of a table. -->
+
+<!-- ```{r} -->
+<!-- head(mtcars) -->
+<!-- ``` -->
+
+<!-- ::: {.callout-note} -->
+<!-- ## Exercise -->
+
+<!-- Show the last rows of the `mtcars` table. -->
+
+<!-- ```{r} -->
+<!-- # Add you code here -->
+<!-- ``` -->
+
+<!-- Your result should look like the plot below -->
+<!-- ::: -->
+
+<!-- ::: {.callout-tip collapse="true"} -->
+<!-- ## Expected Result -->
+
+<!-- ```{r} -->
+<!-- #| echo: false -->
+<!-- tail(mtcars) -->
+<!-- ``` -->
+<!-- ::: -->

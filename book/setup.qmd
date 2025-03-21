@@ -1,0 +1,18 @@
+# Setup
+
+We'll use a range of R packages in this tutorial. Make sure you have them installed.
+
+```{r message=FALSE, warning=FALSE}
+library(optimx)
+library(terra)
+library(tidyterra)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(cowplot)
+library(ggspatial)
+library(dplyr)
+library(here)
+```
+

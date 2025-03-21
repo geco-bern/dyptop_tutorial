@@ -1,0 +1,286 @@
+# Global wetland simulation
+
+```{r}
+library(terra)
+library(tidyterra)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(cowplot)
+library(ggspatial)
+library(dplyr)
+library(tidyr)
+library(here)
+library(khroma)
+```
+
+Wetlands are then commonly defined as areas that are regularly flooded, at least during a certain part of the year.
+
+```{r}
+rasta_wtd <- rast(here("data/LPX-Bern_DYPTOP_vars_1990-2020_1x1deg_m_MONMEAN.nc"))
+
+df_wtd <- as.data.frame(rasta_wtd, xy = TRUE, na.rm = TRUE) |> 
+  as_tibble()
+
+# Rename columns for clarity
+colnames(df_wtd) <- c("lon", "lat", paste0("month_", 1:12))
+
+# Convert from wide to long format (tidy)
+df_wtd <- df_wtd |> 
+  pivot_longer(cols = starts_with("month_"), names_to = "month", values_to = "wtd") |> 
+  mutate(month = as.integer(gsub("month_", "", month)))  # Extract month number
+```
+
+Plot the simulated water table position for January and July.
+
+```{r}
+world <- ne_coastline(scale = "small", returnclass = "sf")
+
+# January
+wtd_jan <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_wtd |> filter(month == 1), 
+    aes(x = lon, y = lat, fill = wtd),
+    show.legend = TRUE
+    ) +
+  scale_fill_lapaz(reverse = TRUE, name = "WTD (mm)") +  # Reverse the "lapaz" color scale
+  theme_void() +
+  theme(
+    legend.position = "right", # Position the legend at the bottom of the plot
+    legend.title = element_text(size = 10), # Adjust title font size
+    legend.text = element_text(size = 8),    # Adjust legend text size
+    panel.background = element_rect(fill = "grey30", color = NA)
+  ) +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80) +
+  labs(title = "January")
+
+# July
+wtd_jul <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_wtd |> filter(month == 7), 
+    aes(x = lon, y = lat, fill = wtd)
+    ) +
+  scale_fill_lapaz(reverse = TRUE, name = "WTD (mm)") +  # Reverse the "lapaz" color scale
+  theme_void() +
+  theme(
+    legend.position = "right", # Position the legend at the bottom of the plot
+    legend.title = element_text(size = 10), # Adjust title font size
+    legend.text = element_text(size = 8),    # Adjust legend text size
+    panel.background = element_rect(fill = "grey30", color = NA)
+  ) +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80) +
+  labs(title = "July")
+
+plot_grid(wtd_jan, wtd_jul, ncol = 1)
+```
+
+Read the TOPMODEL parameters defined for DYPTOP.
+
+```{r}
+rasta_pars <- rast(here("data/params_topmodel_M8_C12_filled_1x1deg.nc"))
+
+var_names <- names(rasta_pars)
+
+# Create an empty list to store data frames for each variable
+tidy_data_list <- list()
+
+# Loop through each variable and convert it to a tidy data frame
+for (var in var_names) {
+  # Extract the variable as a raster
+  var_raster <- rasta_pars[[var]]
+  
+  # Convert to a tidy data frame
+  var_df <- as.data.frame(var_raster, xy = TRUE) %>%
+    rename(lon = x, lat = y, value = var) %>%
+    mutate(variable = var)  # Add a column for the variable name
+  
+  # Append the data frame to the list
+  tidy_data_list[[var]] <- var_df
+}
+
+# Combine all data frames into one tidy data frame
+df_pars <- bind_rows(tidy_data_list) |> 
+  as_tibble()
+```
+
+Visualise parameters.
+```{r}
+gg1 <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_pars |> filter(variable == "K_PAR"), 
+    aes(x = lon, y = lat, fill = value)
+    ) +
+  scale_fill_batlowK(reverse = TRUE, name = "K") + 
+  theme_void() +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80)
+
+gg2 <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_pars |> filter(variable == "XM_PAR"), 
+    aes(x = lon, y = lat, fill = value)
+    ) +
+  scale_fill_batlowK(reverse = TRUE, name = "Q") +  # ? (XM_PAR)
+  theme_void() +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80)
+
+gg3 <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_pars |> filter(variable == "V_PAR"), 
+    aes(x = lon, y = lat, fill = value)
+    ) +
+  scale_fill_batlowK(reverse = TRUE, name = "V") + 
+  theme_void() +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80)
+
+gg4 <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_pars |> filter(variable == "MAXF"), 
+    aes(x = lon, y = lat, fill = value)
+    ) +
+  scale_fill_batlowK(reverse = TRUE, name = "K") + 
+  theme_void() +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80)
+
+plot_grid(gg1, gg2, gg3, gg4, ncol = 1)
+```
+
+
+To calculate the flooded area fraction as a function of the monthly varying water table depth for each gridcell, we need to merge the data frames.
+
+```{r}
+df_combined <- df_wtd |> 
+  left_join(
+    df_pars |> 
+      pivot_wider(
+        names_from = "variable",
+        values_from = "value"
+      ),
+    by = join_by("lon", "lat")
+  )
+```
+
+Now apply the assymetric sigmoid function, using the parameters and the water table depth as the argument.
+
+```{r}
+assymmetric_sigmoid <- function(x, k_par, xm_par, v_par, maxf){
+  min(maxf, (1 + v_par * exp(-k_par * (x/1000 - xm_par)))^(-1/v_par))
+}
+
+df_combined <- df_combined |> 
+  rowwise() |> 
+  mutate(fflooded = assymmetric_sigmoid(wtd, K_PAR, XM_PAR, V_PAR, MAXF))
+```
+
+Plot it for January and July again.
+```{r}
+# January
+fflooded_jan <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_combined |> filter(month == 1), 
+    aes(x = lon, y = lat, fill = fflooded),
+    show.legend = TRUE
+    ) +
+  scale_fill_lapaz(reverse = TRUE, name = "fraction \nflooded") +  # Reverse the "lapaz" color scale
+  theme_void() +
+  theme(
+    legend.position = "right", # Position the legend at the bottom of the plot
+    legend.title = element_text(size = 10), # Adjust title font size
+    legend.text = element_text(size = 8),    # Adjust legend text size
+    panel.background = element_rect(fill = "grey30", color = NA)
+  ) +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80) +
+  labs(title = "January")
+
+# July
+fflooded_jul <- ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_combined |> filter(month == 7), 
+    aes(x = lon, y = lat, fill = fflooded)
+    ) +
+  scale_fill_lapaz(reverse = TRUE, name = "fraction \nflooded") +  # Reverse the "lapaz" color scale
+  theme_void() +
+  theme(
+    legend.position = "right", # Position the legend at the bottom of the plot
+    legend.title = element_text(size = 10), # Adjust title font size
+    legend.text = element_text(size = 8),    # Adjust legend text size
+    panel.background = element_rect(fill = "grey30", color = NA)
+  ) +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80) +
+  labs(title = "July")
+
+plot_grid(fflooded_jan, fflooded_jul, ncol = 1)
+```
+
+Define the wetland area fraction as the area that is flooded at least during three months of the year.
+
+```{r}
+get_wetland_fraction <- function(df, min_months = 3){
+  df |> 
+    arrange(desc(fflooded)) |> 
+    slice(min_months) |> 
+    pull(fflooded) |> 
+    min()
+}
+
+df_wetland <- df_combined |> 
+  select(lon, lat, month, fflooded) |> 
+  group_by(lon, lat) |> 
+  nest() |> 
+  mutate(fwetland = purrr::map_dbl(data, ~get_wetland_fraction(.))) |> 
+  select(-data)
+```
+
+```{r}
+ggplot() +
+
+  # Add elevation layer
+  geom_raster(
+    data = df_wetland, 
+    aes(x = lon, y = lat, fill = fwetland)
+    ) +
+  scale_fill_lapaz(reverse = TRUE, name = "fraction \nwetland") +  # Reverse the "lapaz" color scale
+  theme_void() +
+  theme(
+    legend.position = "right", # Position the legend at the bottom of the plot
+    legend.title = element_text(size = 10), # Adjust title font size
+    legend.text = element_text(size = 8),    # Adjust legend text size
+    panel.background = element_rect(fill = "grey30", color = NA)
+  ) +
+  coord_fixed() +
+  geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
+  ylim(-55, 80)
+```
+

@@ -1,9 +1,21 @@
-# Preface {.unnumbered}
+---
+title-block-banner: true
+---
 
-This is a Quarto book.
+# Content {.unnumbered}
 
-To learn more about Quarto books visit <https://quarto.org/docs/books>.
+This tutorial explains and demonstrates a scalable wetland and peatland modelling approach, implemented by the Dynamical Peatland Model Based on TOPMODEL (DYPTOP) [@stocker14dyptop]. The demonstration contrasts two regions, the extent around the central Congo Basin peatland complex [@dargie17nat], and Switzerland.
 
-```{r}
-1 + 1
+```{r echo=FALSE}
+#| label: fig-maps_domain_congo
+#| fig-cap: "Region used for demonstration around the Central Congo Basin peatland complex."
+#| out-width: 100%
+knitr::include_graphics("images/map_congo.png")
+```
+
+```{r echo=FALSE}
+#| label: fig-maps_domain_switzerland
+#| fig-cap: "Regions used for demonstration around Switzerland."
+#| out-width: 100%
+knitr::include_graphics("images/map_switzerland.png")
 ```

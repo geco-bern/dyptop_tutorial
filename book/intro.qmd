@@ -1,9 +1,15 @@
 # Introduction
 
-This is a book created from markdown and executable code.
+DYPTOP provides a solution for treating sub-grid scale topography in determining the portion of a (global) model gridcell flooded as a function of the gridcell-average water table depth. Given the mean seasonal cycle of flooding and additional criteria related the the land surface water and carbon balances, DYPTOP determines whether a peatland can establish and grow, and it simulates its dynamic lateral expansion and contraction in a non-spatially explicit manner - always as a fraction of the (global) model gridcell.
 
-See @knuth84 for additional discussion of literate programming.
+The central challenge is to describe sub-grid scale relations for a larger domain. Dynamic Global Vegetation Models (DGVMs) commonly resolve the Earth's land surface at a spatial resolution of 10-100 km. The water and carbon balances are simulated at this coarse resolution and for each *gridcell*. However, relations between the surface water balance and flooding are determined by the topography. Topographical variations arise at much smaller spatial scales than the common resolution of DGVMs - at 10-1000 m. Such small scales cannot be resolved for global modelling.
 
-```{r}
-1 + 1
-```
+The approach taken by DYPTOP is to not consider the explicit spatial distribution of flooding within a model gridcell, but just to determine the gridcell's *area fraction* that is flooded ($\Psi_x$) as a function of the gridcell's water table depth ($\Gamma_x$). 
+$$
+\Psi_x = f_x(\Gamma_x)
+$$
+In the following, we will denote quantities that are defined at the coarse model gridcell with a subscript $x$. Above, $f_x$ is an empirical relation, determined by a gridcell's topography, and is thus specific for each gridcell (hence the subscript $x$).
+
+Remember that the water balance is simulated at the corse model gridcell and the water table thus represents an average across the coarse gridcell, without resolving topographic effects and lateral flow. $f_x(\Gamma_x)$) is the central relation and is determined from information about the fine-scale topography within a coarse-scale model gridcell. The clue of the DYPTOP approach is to approximate it by a fitted curve that characterises the sub-grid scale relations without actually resolving them ($\hat{f_x}(\Gamma_x)$).
+
+This approach is demonstrated in @sec-fflooded for the two demo regions shown in @fig-maps_domain_congo and @fig-maps_domain_switzerland.
