@@ -14,7 +14,6 @@ book:
   chapters:
     - index.qmd
     - intro.qmd
-    - setup.qmd
     - fflooded.qmd
     - wetlands.qmd
     - ggplot.qmd

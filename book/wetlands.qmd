@@ -1,6 +1,7 @@
-# Global wetland simulation
+# Global wetland simulation {#sec-wetlands}
 
-```{r}
+```{r warning=FALSE, message=FALSE}
+#| code-fold: true
 library(terra)
 library(tidyterra)
 library(ggplot2)
@@ -15,11 +16,18 @@ library(here)
 library(khroma)
 ```
 
-Wetlands are then commonly defined as areas that are regularly flooded, at least during a certain part of the year.
+The approach of resolving sub-grid scale topographic heterogeneity for modelling flooding across large scales - e.g., in global vegetation model simulations - was demonstrated in @sec-fflooded. In this chapter, we're looking at global patterns of (simulated) water table depth and how it is "translated" to the global distribution of flooded area fractions and how this can be used to define the wetland area fraction.
 
-```{r}
+## Water table depth
+
+We're using outputs from the LPX-Bern simulations that were contributed to the GCP2021 Methane Budget. Simulations were forced by CRU monthly climate time series. The water table depth is simulated in LPX-Bern in a not-very-explicit manner to overcome the limitation implied by the free-drainage assumption. @fig-wtd_global shows the simulated water table depth for months January and July.
+
+```{r warning=FALSE, message=FALSE}
+# read water table depth outputs
+# open raster
 rasta_wtd <- rast(here("data/LPX-Bern_DYPTOP_vars_1990-2020_1x1deg_m_MONMEAN.nc"))
 
+# extract data
 df_wtd <- as.data.frame(rasta_wtd, xy = TRUE, na.rm = TRUE) |> 
   as_tibble()
 
@@ -32,9 +40,13 @@ df_wtd <- df_wtd |>
   mutate(month = as.integer(gsub("month_", "", month)))  # Extract month number
 ```
 
-Plot the simulated water table position for January and July.
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=6}
+#| code-fold: true
+#| label: fig-wtd_global
+#| fig-cap: "Water table depth for months January and July from simulations with the LPX-Bern model."
+
+# load global coastline data
 world <- ne_coastline(scale = "small", returnclass = "sf")
 
 # January
@@ -82,10 +94,12 @@ wtd_jul <- ggplot() +
 
 plot_grid(wtd_jan, wtd_jul, ncol = 1)
 ```
+## TOPMODEL parameters
 
-Read the TOPMODEL parameters defined for DYPTOP.
+To apply @eq-sigmoid to each gridcell globally for calculating the flooded area fraction, the parameters $(k, v, q)$ need to be known for each of the coarse-scale model gridcells. As desribed in the previous Chapter, they are derived from the sub-grid scale topography. Note that, in contrast to $(k, v, q)$, the TOPMODEL parameter $M$ is globally uniform, and was set to 8 by @stocker14dyptop. Note also that the global field of $(k, v, q)$ is temporally static, as it merely represents topography. Hence, once calculated, they can be re-used within any large-scale land surface or vegetation modelling framework. Let's look at the global pattern of them. 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
+# read all variables (topmodel parameters) from the file
 rasta_pars <- rast(here("data/params_topmodel_M8_C12_filled_1x1deg.nc"))
 
 var_names <- names(rasta_pars)
@@ -112,8 +126,11 @@ df_pars <- bind_rows(tidy_data_list) |>
   as_tibble()
 ```
 
-Visualise parameters.
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4}
+#| code-fold: true
+#| label: fig-topmodel_parameters
+#| fig-cap: "Global distributions of topmodel parameters *v, k, q*. Additionally, the global distribution of the maximum floodable area fraction is shown."
+
 gg1 <- ggplot() +
 
   # Add elevation layer
@@ -166,13 +183,17 @@ gg4 <- ggplot() +
   geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
   ylim(-55, 80)
 
-plot_grid(gg1, gg2, gg3, gg4, ncol = 1)
+plot_grid(gg1, gg2, gg3, gg4, ncol = 2)
 ```
 
+## Flooded area fraction
+
+The data loaded above contains the water table depth for each month of a mean seasonal cycle. In combination with the TOPMODEL parameters, we can now apply @eq-sigmoid to calculate the flooded area fraction for each month of a mean seasonal cycle.
 
 To calculate the flooded area fraction as a function of the monthly varying water table depth for each gridcell, we need to merge the data frames.
 
-```{r}
+```{r warning=FALSE, message=FALSE}
+# merge data frames for water table depth and topmodel parameters 
 df_combined <- df_wtd |> 
   left_join(
     df_pars |> 
@@ -186,7 +207,7 @@ df_combined <- df_wtd |>
 
 Now apply the assymetric sigmoid function, using the parameters and the water table depth as the argument.
 
-```{r}
+```{r warning=FALSE, message=FALSE}
 assymmetric_sigmoid <- function(x, k_par, xm_par, v_par, maxf){
   min(maxf, (1 + v_par * exp(-k_par * (x/1000 - xm_par)))^(-1/v_par))
 }
@@ -197,7 +218,11 @@ df_combined <- df_combined |>
 ```
 
 Plot it for January and July again.
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=6}
+#| code-fold: true
+#| label: fig-fflooded_global
+#| fig-cap: "Flooded area fraction for months January and July."
+
 # January
 fflooded_jan <- ggplot() +
 
@@ -244,9 +269,11 @@ fflooded_jul <- ggplot() +
 plot_grid(fflooded_jan, fflooded_jul, ncol = 1)
 ```
 
+## Wetland area fraction
+
 Define the wetland area fraction as the area that is flooded at least during three months of the year.
 
-```{r}
+```{r warning=FALSE, message=FALSE}
 get_wetland_fraction <- function(df, min_months = 3){
   df |> 
     arrange(desc(fflooded)) |> 
@@ -263,7 +290,11 @@ df_wetland <- df_combined |>
   select(-data)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=3}
+#| code-fold: true
+#| label: fig-wetlands_global
+#| fig-cap: "Wetland area fraction."
+
 ggplot() +
 
   # Add elevation layer
