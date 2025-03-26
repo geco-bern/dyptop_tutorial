@@ -1,6 +1,7 @@
 # Flooded area fraction {#sec-fflooded}
 
 ```{r warning=FALSE, message=FALSE}
+#| code-fold: false
 library(optimx)
 library(terra)
 library(tidyterra)
@@ -26,7 +27,7 @@ where $a_i$ is the total area that drains into/through the respective point, and
 
 - The topography within the catchment: Flat valley bottoms get flooded first. Hence, the *distribution* of CTI matters for determining the flooded area fraction for a given catchment water balance.
 - The average catchment water balance: The wetter the conditions, the more water is stored in the soil and subsurface, and the higher the larger the catchment's area fraction for which the soil is at saturation. In @eq-topmodel, this is expressed as the water table depth $\Gamma$.
-- The structure of the soil and subsurface, expressed as the rate of decline of transmissivity for water flow with depth. In @eq-topmodel, this is represented by the parameter $M$.
+- The structure of the soil and subsurface, expressed as the rate of decline of saturated hydraulic conductivity with depth. In @eq-topmodel, this is represented by the parameter $M$.
 
 CTI can be derived from a digital elevation model and is provided at topography-resolving spatial resolution. @fig-maps_domain_congo and @fig-maps_domain_switzerland show the spatial distribution of CTI values at 15 arcsec resolution and is provided by @marthews14hess . Let's refer to each pixel in these images as *pixel*, also using the underscore $i$.
 
@@ -54,8 +55,7 @@ rasta_cti <- rast(file_path)
 bounding_box <- c(15,22,-3,3) # c(15,20,-2,3)  # max bb:  c(15,22,-3,3)
 rasta_cti_cropped <- crop(rasta_cti, ext(bounding_box))
 
-df_cti_congo <- as.data.frame(rasta_cti_cropped, xy = TRUE, na.rm = TRUE) |>
-  as_tibble() |>
+df_cti_congo <- as_tibble(rasta_cti_cropped, xy = TRUE, na.rm = TRUE) |>
   setNames(c("lon", "lat", "cti"))
 
 gg1 <- df_cti_congo |>
@@ -80,8 +80,7 @@ bounding_box <- c(xmin = 6, xmax = 10.5, ymin = 45.81799, ymax = 47.80838)
 rasta_cti <- rast(file_path)
 rasta_cti_cropped <- crop(rasta_cti, ext(bounding_box))
 
-df_cti_switzerland <- as.data.frame(rasta_cti_cropped, xy = TRUE, na.rm = TRUE) |>
-  as_tibble() |>
+df_cti_switzerland <- as_tibble(rasta_cti_cropped, xy = TRUE, na.rm = TRUE) |>
   setNames(c("lon", "lat", "cti"))
 
 gg3 <- df_cti_switzerland |>

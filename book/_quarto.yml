@@ -16,7 +16,8 @@ book:
     - intro.qmd
     - fflooded.qmd
     - wetlands.qmd
-    - ggplot.qmd
+    - peatlands.qmd
+    - exercises.qmd
     - references.qmd
   favicon: "figures/favicon.ico"
   twitter-card: true

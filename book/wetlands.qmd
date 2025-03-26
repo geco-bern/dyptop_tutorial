@@ -1,7 +1,7 @@
-# Global wetland simulation {#sec-wetlands}
+# Global wetlands {#sec-wetlands}
 
 ```{r warning=FALSE, message=FALSE}
-#| code-fold: true
+#| code-fold: false
 library(terra)
 library(tidyterra)
 library(ggplot2)
@@ -13,6 +13,7 @@ library(ggspatial)
 library(dplyr)
 library(tidyr)
 library(here)
+library(readr)
 library(khroma)
 ```
 
@@ -64,7 +65,7 @@ wtd_jan <- ggplot() +
     legend.position = "right", # Position the legend at the bottom of the plot
     legend.title = element_text(size = 10), # Adjust title font size
     legend.text = element_text(size = 8),    # Adjust legend text size
-    panel.background = element_rect(fill = "grey30", color = NA)
+    panel.background = element_rect(fill = "grey70", color = NA)
   ) +
   coord_fixed() +
   geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
@@ -85,7 +86,7 @@ wtd_jul <- ggplot() +
     legend.position = "right", # Position the legend at the bottom of the plot
     legend.title = element_text(size = 10), # Adjust title font size
     legend.text = element_text(size = 8),    # Adjust legend text size
-    panel.background = element_rect(fill = "grey30", color = NA)
+    panel.background = element_rect(fill = "grey70", color = NA)
   ) +
   coord_fixed() +
   geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
@@ -94,6 +95,7 @@ wtd_jul <- ggplot() +
 
 plot_grid(wtd_jan, wtd_jul, ncol = 1)
 ```
+
 ## TOPMODEL parameters
 
 To apply @eq-sigmoid to each gridcell globally for calculating the flooded area fraction, the parameters $(k, v, q)$ need to be known for each of the coarse-scale model gridcells. As desribed in the previous Chapter, they are derived from the sub-grid scale topography. Note that, in contrast to $(k, v, q)$, the TOPMODEL parameter $M$ is globally uniform, and was set to 8 by @stocker14dyptop. Note also that the global field of $(k, v, q)$ is temporally static, as it merely represents topography. Hence, once calculated, they can be re-used within any large-scale land surface or vegetation modelling framework. Let's look at the global pattern of them. 
@@ -129,7 +131,7 @@ df_pars <- bind_rows(tidy_data_list) |>
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4}
 #| code-fold: true
 #| label: fig-topmodel_parameters
-#| fig-cap: "Global distributions of topmodel parameters *v, k, q*. Additionally, the global distribution of the maximum floodable area fraction is shown."
+#| fig-cap: "Global distributions of TOPMODEL parameters *v, k, q* (@eq-sigmoid). Additionally, the global distribution of the maximum floodable area fraction is shown."
 
 gg1 <- ggplot() +
 
@@ -194,7 +196,7 @@ To calculate the flooded area fraction as a function of the monthly varying wate
 
 ```{r warning=FALSE, message=FALSE}
 # merge data frames for water table depth and topmodel parameters 
-df_combined <- df_wtd |> 
+df_wtd_fflooded <- df_wtd |> 
   left_join(
     df_pars |> 
       pivot_wider(
@@ -212,9 +214,12 @@ assymmetric_sigmoid <- function(x, k_par, xm_par, v_par, maxf){
   min(maxf, (1 + v_par * exp(-k_par * (x/1000 - xm_par)))^(-1/v_par))
 }
 
-df_combined <- df_combined |> 
+df_wtd_fflooded <- df_wtd_fflooded |> 
   rowwise() |> 
   mutate(fflooded = assymmetric_sigmoid(wtd, K_PAR, XM_PAR, V_PAR, MAXF))
+
+# save for use in next chapter
+write_csv(df_wtd_fflooded, file = here("data/df_wtd_fflooded.csv"))
 ```
 
 Plot it for January and July again.
@@ -228,7 +233,7 @@ fflooded_jan <- ggplot() +
 
   # Add elevation layer
   geom_raster(
-    data = df_combined |> filter(month == 1), 
+    data = df_wtd_fflooded |> filter(month == 1), 
     aes(x = lon, y = lat, fill = fflooded),
     show.legend = TRUE
     ) +
@@ -238,7 +243,7 @@ fflooded_jan <- ggplot() +
     legend.position = "right", # Position the legend at the bottom of the plot
     legend.title = element_text(size = 10), # Adjust title font size
     legend.text = element_text(size = 8),    # Adjust legend text size
-    panel.background = element_rect(fill = "grey30", color = NA)
+    panel.background = element_rect(fill = "grey70", color = NA)
   ) +
   coord_fixed() +
   geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
@@ -250,7 +255,7 @@ fflooded_jul <- ggplot() +
 
   # Add elevation layer
   geom_raster(
-    data = df_combined |> filter(month == 7), 
+    data = df_wtd_fflooded |> filter(month == 7), 
     aes(x = lon, y = lat, fill = fflooded)
     ) +
   scale_fill_lapaz(reverse = TRUE, name = "fraction \nflooded") +  # Reverse the "lapaz" color scale
@@ -259,7 +264,7 @@ fflooded_jul <- ggplot() +
     legend.position = "right", # Position the legend at the bottom of the plot
     legend.title = element_text(size = 10), # Adjust title font size
     legend.text = element_text(size = 8),    # Adjust legend text size
-    panel.background = element_rect(fill = "grey30", color = NA)
+    panel.background = element_rect(fill = "grey70", color = NA)
   ) +
   coord_fixed() +
   geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
@@ -282,7 +287,7 @@ get_wetland_fraction <- function(df, min_months = 3){
     min()
 }
 
-df_wetland <- df_combined |> 
+df_wetland <- df_wtd_fflooded |> 
   select(lon, lat, month, fflooded) |> 
   group_by(lon, lat) |> 
   nest() |> 
@@ -308,7 +313,7 @@ ggplot() +
     legend.position = "right", # Position the legend at the bottom of the plot
     legend.title = element_text(size = 10), # Adjust title font size
     legend.text = element_text(size = 8),    # Adjust legend text size
-    panel.background = element_rect(fill = "grey30", color = NA)
+    panel.background = element_rect(fill = "grey70", color = NA)
   ) +
   coord_fixed() +
   geom_sf(data = world, fill = NA, color = "black", size = 0.01) +  # Continent outlines
