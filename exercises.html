@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Global wetland and peatland modelling - 4&nbsp; ggplot demo</title>
+<title>Global wetland and peatland modelling - 5&nbsp; Exercises</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,41 +20,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
 }
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
 }
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
 }
-</style>
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -65,7 +50,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
 <link href="./references.html" rel="next">
-<link href="./wetlands.html" rel="prev">
+<link href="./peatlands.html" rel="prev">
 <link href="./figures/favicon.ico" rel="icon">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -100,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 
 
-<meta name="twitter:title" content="Global wetland and peatland modelling - 4&nbsp; ggplot demo">
-<meta name="twitter:image" content="ggplot_files/figure-html/unnamed-chunk-1-1.png">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Global wetland and peatland modelling - 5&nbsp; Exercises">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
 </head>
 
 <body class="nav-sidebar floating nav-fixed">
@@ -159,7 +144,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./ggplot.html"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">ggplot demo</span></a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./exercises.html"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Exercises</span></a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -182,7 +167,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Content</span></a>
+ <span class="menu-text">Overview</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -200,13 +185,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./wetlands.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Global wetland simulation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Global wetlands</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./ggplot.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">ggplot demo</span></span></a>
+  <a href="./peatlands.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Global peatlands</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./exercises.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Exercises</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -221,14 +212,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#completing-dyptop" id="toc-completing-dyptop" class="nav-link active" data-scroll-target="#completing-dyptop"><span class="header-section-number">5.1</span> Completing DYPTOP</a></li>
+  <li><a href="#improving-the-global-peatland-prediction" id="toc-improving-the-global-peatland-prediction" class="nav-link" data-scroll-target="#improving-the-global-peatland-prediction"><span class="header-section-number">5.2</span> Improving the global peatland prediction</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">ggplot demo</span></h1>
+<h1 class="title"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Exercises</span></h1>
 </div>
 
 
@@ -243,60 +241,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </header>
 
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> mtcars, <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> mpg, <span class="at">y =</span> hp)) <span class="sc">+</span> </span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<p><img src="ggplot_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid" width="672"></p>
+<section id="completing-dyptop" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="completing-dyptop"><span class="header-section-number">5.1</span> Completing DYPTOP</h2>
+<p>The description of the model in <a href="fflooded.html"><span>Chapter&nbsp;2</span></a> is incomplete. An additional point is considered for determining the flooded area fraction as a function of the water table depth in the work by <span class="citation" data-cites="stocker14dyptop">Stocker, Spahni, and Joos (<a href="references.html#ref-stocker14dyptop" role="doc-biblioref">2014</a>)</span>. Which one? Complement the model and revise <a href="fflooded.html#fig-fflooded_wtd">Figure&nbsp;<span>2.5</span></a>, visualising the additional constraint.</p>
+<p>You can find all code shown and data used in this tutorial <a href="https://github.com/orgs/geco-bern/dyptop_tutorial">here</a> (code in <code>.qmd</code> files stored under <code>book/</code>, data in <code>data/</code>).</p>
+</section>
+<section id="improving-the-global-peatland-prediction" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="improving-the-global-peatland-prediction"><span class="header-section-number">5.2</span> Improving the global peatland prediction</h2>
+<p>The predicted global distribution of the actual peatland area fraction shown in <a href="peatlands.html#fig-fpeat_act">Figure&nbsp;<span>4.6</span></a> some major northern peatland complexes, including the Hudson Bay Lowland and the West Siberian Lowlands. In other regions, the map suggests excessive peatland areas (e.g., Amazon). Modify model parameters to improve the correspondence between predicted and observed global peatland areas. As observations, you may consider the global peatland map PEATMAP, shown e.g., <a href="https://geco-bern.github.io/les/globalcarbonpatterns.html#fig-peatland_map">here</a>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Pro-tip
 </div>
 </div>
-<!-- <html> -->
-<!-- ```{=html} -->
-<!-- <script type="module"> -->
-<!-- import { WebR } from 'https://webr.r-wasm.org/latest/webr.mjs';  -->
-<!-- globalThis.webR = new WebR({SW_URL: "https://bluegreen-labs.github.io/R_book_template/"});  -->
-<!-- await globalThis.webR.init();  -->
-<!-- globalThis.webRCodeShelter = await new globalThis.webR.Shelter(); -->
-<!-- await globalThis.webR.installPackages(['ggplot2']) -->
-<!-- </script> -->
-<!-- ``` -->
-<!-- </html> -->
-<!-- ::: callout-warning -->
-<!-- Installing and loading ggplot2 on webR takes a little while. -->
-<!-- ::: -->
-<!-- ### Basic plotting -->
-<!-- -   Load the package and some data -->
-<!-- ```{webr} -->
-<!-- library(ggplot2) -->
-<!-- ``` -->
-<!-- -   create a plot -->
-<!-- ```{webr} -->
-<!-- ggplot(data = mtcars, mapping = aes(x = mpg, y = hp)) + -->
-<!--   geom_point() -->
-<!-- ``` -->
-<!-- ::: callout-note -->
-<!-- ## Exercise -->
-<!-- Make a scatter plot with `hp` on the x axis and `wt` on the y axis. Label the x axis "Horse Power" and the y axis "Weight". Make one subplot for each value in `gear`. -->
-<!-- ```{webr} -->
-<!-- # Add you code here -->
-<!-- ``` -->
-<!-- Your result should look like the plot below -->
-<!-- ::: -->
-<!-- ::: {.callout-tip collapse="true"} -->
-<!-- ## Expected Result -->
-<!-- ```{r} -->
-<!-- #| echo: false -->
-<!-- library(ggplot2) -->
-<!-- ggplot(mtcars, aes(x = hp, y = wt)) + -->
-<!--   geom_point() + -->
-<!--   labs(x = "Horse Power", y = "Weight") + -->
-<!--   facet_wrap(~gear) -->
-<!-- ``` -->
-<!-- ::: -->
+<div class="callout-body-container callout-body">
+<p>Fork and clone the GitHub repository and open it as a project in RStudio. This lets you run the code shown in the tutorial and render the HTML output hosted on the tutorial’s website.</p>
+</div>
+</div>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-stocker14dyptop" class="csl-entry" role="listitem">
+Stocker, B. D., R. Spahni, and F. Joos. 2014. <span>“<span class="nocase">DYPTOP: a cost-efficient TOPMODEL implementation to simulate sub-grid spatio-temporal dynamics of global wetlands and peatlands</span>.”</span> <em>Geoscientific Model Development</em> 7 (6): 3089–3110. <a href="https://doi.org/10.5194/gmd-7-3089-2014">https://doi.org/10.5194/gmd-7-3089-2014</a>.
+</div>
+</div>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -649,8 +622,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./wetlands.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Global wetland simulation</span></span>
+      <a href="./peatlands.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Global peatlands</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
