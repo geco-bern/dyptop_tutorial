@@ -346,7 +346,7 @@ gg <- ggplot() +
   scale_fill_manual(
     name = "",
     values = c(
-      "too dry" = "wheat1",
+      "too dry" = "wheat3",
       "C accumulation ok" = "dodgerblue4",
       "C stock ok" = "dodgerblue1",
       "C stock too low" = "wheat4"
