@@ -13,3 +13,21 @@ In the following, we will denote quantities that are defined at the coarse model
 Remember that the water balance is simulated at the corse model gridcell and the water table thus represents an average across the coarse gridcell, without resolving topographic effects and lateral flow. $f_x(\Gamma_x)$) is the central relation and is determined from information about the fine-scale topography within a coarse-scale model gridcell. The clue of the DYPTOP approach is to approximate it by a fitted curve that characterises the sub-grid scale relations without actually resolving them ($\hat{f_x}(\Gamma_x)$).
 
 This approach is demonstrated in @sec-fflooded for the two demo regions shown in @fig-maps_domain_congo and @fig-maps_domain_switzerland.
+
+## Setup
+
+Before we get started, make sure to have all required packages installed.
+
+```{r message=FALSE, warning=FALSE}
+package_list <- c("readr", "purrr", "ncdf4", "khroma", "tidyr", "optimx", "here", "dplyr", "ggspatial", "cowplot", "rnaturalearthdata", "rnaturalearth", "sf", "ggplot2", "tidyterra", "terra")
+
+# Check which packages are not installed
+missing_packages <- setdiff(package_list, rownames(installed.packages()))
+
+# Install only the missing packages
+if (length(missing_packages) > 0) {
+  install.packages(missing_packages)
+} else {
+  message("All packages are already installed.")
+}
+```
