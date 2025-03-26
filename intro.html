@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -195,7 +229,13 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup"><span class="header-section-number">1.1</span> Setup</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -224,8 +264,25 @@ ul.task-list li input[type="checkbox"] {
 \]</span> In the following, we will denote quantities that are defined at the coarse model gridcell with a subscript <span class="math inline">\(x\)</span>. Above, <span class="math inline">\(f_x\)</span> is an empirical relation, determined by a gridcell’s topography, and is thus specific for each gridcell (hence the subscript <span class="math inline">\(x\)</span>).</p>
 <p>Remember that the water balance is simulated at the corse model gridcell and the water table thus represents an average across the coarse gridcell, without resolving topographic effects and lateral flow. <span class="math inline">\(f_x(\Gamma_x)\)</span>) is the central relation and is determined from information about the fine-scale topography within a coarse-scale model gridcell. The clue of the DYPTOP approach is to approximate it by a fitted curve that characterises the sub-grid scale relations without actually resolving them (<span class="math inline">\(\hat{f_x}(\Gamma_x)\)</span>).</p>
 <p>This approach is demonstrated in <a href="fflooded.html"><span>Chapter&nbsp;2</span></a> for the two demo regions shown in <a href="index.html#fig-maps_domain_congo">Figure&nbsp;<span>1</span></a> and <a href="index.html#fig-maps_domain_switzerland">Figure&nbsp;<span>2</span></a>.</p>
+<section id="setup" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="setup"><span class="header-section-number">1.1</span> Setup</h2>
+<p>Before we get started, make sure to have all required packages installed.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>package_list <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"readr"</span>, <span class="st">"purrr"</span>, <span class="st">"ncdf4"</span>, <span class="st">"khroma"</span>, <span class="st">"tidyr"</span>, <span class="st">"optimx"</span>, <span class="st">"here"</span>, <span class="st">"dplyr"</span>, <span class="st">"ggspatial"</span>, <span class="st">"cowplot"</span>, <span class="st">"rnaturalearthdata"</span>, <span class="st">"rnaturalearth"</span>, <span class="st">"sf"</span>, <span class="st">"ggplot2"</span>, <span class="st">"tidyterra"</span>, <span class="st">"terra"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Check which packages are not installed</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>missing_packages <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(package_list, <span class="fu">rownames</span>(<span class="fu">installed.packages</span>()))</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Install only the missing packages</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(missing_packages) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">install.packages</span>(missing_packages)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"All packages are already installed."</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
