@@ -22,7 +22,7 @@ book:
   favicon: "figures/favicon.ico"
   twitter-card: true
   search: true
-  repo-url: https://github.com/stineb/dyptop_tutorial
+  repo-url: https://github.com/geco-bern/dyptop_tutorial
   sharing: [twitter, facebook]
   navbar:
     title: " "
