@@ -4,7 +4,7 @@
 
 The description of the model in @sec-fflooded is incomplete. An additional point is considered for determining the flooded area fraction as a function of the water table depth in the work by @stocker14dyptop. Which one? Complement the model and revise @fig-fflooded_wtd, visualising the additional constraint.
 
-You can find all code shown and data used in this tutorial [here](https://github.com/stineb/dyptop_tutorial) (code in `.qmd` files stored under `book/`, data in `data/`). 
+You can find all code shown and data used in this tutorial [here](https://github.com/geco-bern/dyptop_tutorial) (code in `.qmd` files stored under `book/`, data in `data/`). 
 
 
 ## Improving the global peatland prediction
